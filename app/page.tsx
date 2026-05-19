@@ -190,9 +190,6 @@ export default function Home() {
     addLog(`✓ Done. ${allResults.filter(r => r.status === 'FOUND').length} Discord links found.`);
     setLoading(false);
     setCrawling(null);
-
-    // Auto download TXT when done
-    downloadTxt(allResults);
   };
 
   const fetchAndCrawlTop = async () => {
