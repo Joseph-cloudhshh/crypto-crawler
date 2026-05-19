@@ -145,6 +145,13 @@ export default function Home() {
     let crawled = 0;
     const allResults: CrawlRow[] = [];
 
+    // Load all crawled names upfront
+    addLog('Loading already crawled protocols...');
+    const crawledRes = await fetch('/api/results');
+    const crawledData = await crawledRes.json();
+    const crawledNames = new Set((crawledData.records || []).map((r: any) => r.name.toLowerCase()));
+    addLog(`Loaded ${crawledNames.size} already crawled protocols`);
+
     for (let offset = from; offset < to; offset += batchSize) {
       const limit = Math.min(batchSize, to - offset);
       try {
@@ -154,18 +161,14 @@ export default function Home() {
         for (let i = 0; i < protocols.length; i++) {
           const proto = protocols[i];
           crawled++;
+          // Skip already crawled
+          if (crawledNames.has(proto.name.toLowerCase())) {
+            addLog(`  ↩ Skipped: ${proto.name}`);
+            continue;
+          }
           addLog(`[${crawled}/${total}] ${proto.name}`);
           setCrawling(proto.name);
           try {
-            // Skip already crawled
-            const checkRes = await fetch(`/api/results?q=${encodeURIComponent(proto.name)}`);
-            const checkData = await checkRes.json();
-            const alreadyCrawled = checkData.records?.some((r: any) => r.name.toLowerCase() === proto.name.toLowerCase());
-            if (alreadyCrawled) {
-              addLog(`  ↩ Skipped (already crawled): ${proto.name}`);
-              crawled++;
-              continue;
-            }
             const crawlRes = await fetch('/api/crawl', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
