@@ -157,6 +157,15 @@ export default function Home() {
           addLog(`[${crawled}/${total}] ${proto.name}`);
           setCrawling(proto.name);
           try {
+            // Skip already crawled
+            const checkRes = await fetch(`/api/results?q=${encodeURIComponent(proto.name)}`);
+            const checkData = await checkRes.json();
+            const alreadyCrawled = checkData.records?.some((r: any) => r.name.toLowerCase() === proto.name.toLowerCase());
+            if (alreadyCrawled) {
+              addLog(`  ↩ Skipped (already crawled): ${proto.name}`);
+              crawled++;
+              continue;
+            }
             const crawlRes = await fetch('/api/crawl', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
