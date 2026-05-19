@@ -17,7 +17,7 @@ export async function fetchDefiLlamaProtocols(): Promise<DefiLlamaProtocol[]> {
   try {
     const res = await fetch(DEFILLAMA_API, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CrawlerBot/1.0)' },
-      next: { revalidate: 300 }, // cache 5 min in Next.js
+      cache: 'no-store',
     });
     if (!res.ok) throw new Error(`DefiLlama API error: ${res.status}`);
     const raw = await res.json();

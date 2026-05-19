@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, url, twitter } = body;
+    const { name, url, twitter, rank } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Protocol name is required' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const result = await scrapeProtocol(proto);
+    const result = await scrapeProtocol(proto, rank ? Number(rank) : undefined);
 
     return NextResponse.json(result);
   } catch (err) {

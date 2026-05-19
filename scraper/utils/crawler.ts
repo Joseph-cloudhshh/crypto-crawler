@@ -9,20 +9,17 @@ import {
 const MAX_DEPTH = 3;
 const VISITED = new Set<string>();
 
-/**
- * Reset the visited URL tracker between full crawl sessions.
- */
+const SUBPAGES = [
+  '/community', '/social', '/links', '/discord',
+  '/join', '/connect', '/about', '/team', '/contact'
+];
+
 export function resetVisited() {
   VISITED.clear();
 }
 
-/**
- * Recursive crawler.
- * Visits a URL, extracts Discord links, then follows linktree-style links.
- * Returns the first Discord link found, or null.
- */
 export async function recursiveCrawl(
-  page: Page,
+  page: Page | null,
   url: string,
   depth = 0
 ): Promise<string | null> {
@@ -31,7 +28,6 @@ export async function recursiveCrawl(
   VISITED.add(url);
 
   console.log(`[Crawler] depth=${depth} url=${url}`);
-
   const html = await fetchPageHtml(page, url);
   if (!html) return null;
 
@@ -56,20 +52,45 @@ export async function recursiveCrawl(
   return null;
 }
 
-/**
- * Crawl a website URL for Discord. Entry point.
- */
-export async function crawlWebsite(page: Page, websiteUrl: string): Promise<string | null> {
+export async function crawlWebsite(page: Page | null, websiteUrl: string): Promise<string | null> {
   resetVisited();
-  return recursiveCrawl(page, websiteUrl, 0);
+
+  // First try the main page
+  const main = await recursiveCrawl(page, websiteUrl, 0);
+  if (main) return main;
+
+  // Then try common subpages
+  try {
+    const base = new URL(websiteUrl).origin;
+    for (const subpage of SUBPAGES) {
+      const subUrl = base + subpage;
+      if (VISITED.has(subUrl)) continue;
+      VISITED.add(subUrl);
+      console.log(`[Crawler] Trying subpage: ${subUrl}`);
+      const html = await fetchPageHtml(page, subUrl);
+      if (!html) continue;
+      const links = extractDiscordFromHtml(html);
+      const best = bestDiscordLink(links);
+      if (best) {
+        console.log(`[Crawler] ✓ Discord found on subpage ${subpage}: ${best}`);
+        return best;
+      }
+      // Also check linktree links on subpage
+      const aggregatorLinks = extractLinktreeFromHtml(html);
+      for (const link of aggregatorLinks) {
+        if (VISITED.has(link)) continue;
+        const found = await recursiveCrawl(page, link, 2);
+        if (found) return found;
+      }
+    }
+  } catch (e) {
+    console.error('[Crawler] Subpage error:', e);
+  }
+
+  return null;
 }
 
-/**
- * Crawl a Twitter/X profile page for Discord or aggregator links.
- * Twitter aggressively blocks bots, so this is best-effort.
- */
-export async function crawlTwitter(page: Page, twitterUrl: string): Promise<string | null> {
+export async function crawlTwitter(page: Page | null, twitterUrl: string): Promise<string | null> {
   if (!twitterUrl || twitterUrl === '404') return null;
-  // Don't reset visited here — called after website crawl
   return recursiveCrawl(page, twitterUrl, 0);
 }

@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import LogPanel from './components/LogPanel';
 import StatsBar from './components/StatsBar';
-import CoverageView from './components/CoverageView';
 
 interface DefiLlamaProto {
   id: string;
@@ -47,12 +46,11 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [crawling, setCrawling] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'crawl' | 'saved' | 'coverage'>('crawl');
+  const [activeTab, setActiveTab] = useState<'crawl' | 'saved'>('crawl');
   const [savedRecords, setSavedRecords] = useState<SavedRow[]>([]);
   const [savedSearch, setSavedSearch] = useState('');
   const [totalProtocols, setTotalProtocols] = useState(0);
   const [showFoundOnly, setShowFoundOnly] = useState(false);
-  const [coverageData, setCoverageData] = useState<{crawled: number[], total: number}>({crawled: [], total: 0});
 
   const addLog = (msg: string) => {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -64,10 +62,9 @@ export default function Home() {
       if (foundOnly) url += (url.includes('?') ? '&' : '?') + 'found=true';
       const res = await fetch(url);
       const data = await res.json();
-      setSavedRecords(data.records ?? []);
-    } catch (e) {
-      console.error('Failed to load saved records', e);
-      setSavedRecords([]);
+      setSavedRecords(data.records || []);
+    } catch {
+      console.error('Failed to load saved records');
     }
   }, []);
 
@@ -80,14 +77,6 @@ export default function Home() {
       .then((r) => r.json())
       .then((d) => setTotalProtocols(d.total || 0))
       .catch(() => {});
-  }, []);
-
-  const loadCoverage = useCallback(async () => {
-    try {
-      const res = await fetch('/api/coverage');
-      const data = await res.json();
-      setCoverageData({ crawled: data.crawled ?? [], total: data.total ?? 0 });
-    } catch (e) { console.error(e); setCoverageData({ crawled: [], total: 0 }); }
   }, []);
 
   const addResult = (data: CrawlRow) => {
@@ -160,7 +149,7 @@ export default function Home() {
             const crawlRes = await fetch('/api/crawl', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: proto.name, url: proto.url, twitter: proto.twitter, rank: offset + i + 1 }),
+              body: JSON.stringify({ name: proto.name, url: proto.url, twitter: proto.twitter }),
             });
             const result = await crawlRes.json();
             if (!result.error) {
@@ -410,12 +399,6 @@ export default function Home() {
           >
             Saved ({savedRecords.length})
           </button>
-          <button
-            onClick={() => { setActiveTab('coverage'); loadCoverage(); }}
-            className={`px-4 py-2 text-sm font-mono transition-colors ${activeTab === 'coverage' ? 'text-white border-b-2 border-indigo-500' : 'text-gray-500 hover:text-gray-300'}`}
-          >
-            Coverage
-          </button>
         </div>
 
         {/* Session Tab */}
@@ -633,16 +616,6 @@ export default function Home() {
           </>
         )}
       </div>
-      {activeTab === 'coverage' && (
-        <div className="rounded-xl border border-gray-800 bg-[#111118] p-4">
-          <h2 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-widest">Crawl Coverage</h2>
-          {coverageData.crawled.length === 0 ? (
-            <p className="text-gray-500 font-mono text-sm">No data yet. Click Coverage to load!</p>
-          ) : (
-            <CoverageView crawled={coverageData.crawled} />
-          )}
-        </div>
-      )}
     </div>
   );
 }
