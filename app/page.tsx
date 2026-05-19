@@ -120,9 +120,7 @@ export default function Home() {
       } else {
         addLog(`✓ ${data.protocol}: ${data.discord}`);
         addResult({ protocol: data.protocol, discord: data.discord, status: data.status });
-        if (data.status === 'FOUND') {
-          downloadTxt([{ protocol: data.protocol, discord: data.discord, status: data.status }]);
-        }
+
       }
     } catch (err) {
       addLog(`✗ Failed: ${(err as Error).message}`);
@@ -228,7 +226,6 @@ export default function Home() {
         }
       }
       addLog(`✓ Done.`);
-      downloadTxt(allResults);
     } catch (err) {
       addLog(`✗ Failed: ${(err as Error).message}`);
     } finally {
@@ -264,7 +261,6 @@ export default function Home() {
       }
     }
     addLog(`✓ Batch complete.`);
-    downloadTxt(allResults);
     setLoading(false);
     setCrawling(null);
   };
