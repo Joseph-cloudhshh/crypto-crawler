@@ -25,6 +25,15 @@ export async function upsertProtocol(record: Omit<ProtocolRecord, 'id' | 'create
     .eq('name', record.name)
     .maybeSingle();
   if (existing) {
+    const { data: existingFull } = await supabase
+      .from('protocols')
+      .select('status')
+      .eq('name', record.name)
+      .maybeSingle();
+    // Don not overwrite a FOUND result with NOT_FOUND
+    if (existingFull?.status === 'FOUND' && record.status === 'NOT_FOUND') {
+      return existing;
+    }
     const { data, error } = await supabase
       .from('protocols')
       .update({
