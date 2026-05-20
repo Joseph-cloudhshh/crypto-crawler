@@ -267,6 +267,57 @@ export default function Home() {
     setCrawling(null);
   };
 
+  const autoCrawl = async () => {
+    setAutoRunning(true);
+    let currentFrom = rangeFrom;
+    const crawledRes = await fetch('/api/results');
+    const crawledData = await crawledRes.json();
+    const crawledNamesSet = new Set((crawledData.records || []).map((r: any) => r.name.toLowerCase()));
+    for (let round = 0; round < autoRounds; round++) {
+      const currentTo = currentFrom + 25;
+      setRangeFrom(currentFrom);
+      setRangeTo(currentTo);
+      addLog(`[Auto] Round ${round + 1}/${autoRounds}: ${currentFrom}-${currentTo}`);
+      try {
+        const res = await fetch(`/api/protocols?limit=25&offset=${currentFrom}`);
+        const data = await res.json();
+        const protocols: DefiLlamaProto[] = data.protocols || [];
+        for (let i = 0; i < protocols.length; i++) {
+          const proto = protocols[i];
+          if (crawledNamesSet.has(proto.name.toLowerCase())) {
+            addLog(`  ↩ Skipped: ${proto.name}`);
+            continue;
+          }
+          setCrawling(proto.name);
+          try {
+            const crawlRes = await fetch('/api/crawl', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: proto.name, url: proto.url, twitter: proto.twitter, rank: currentFrom + i + 1 }),
+            });
+            const result = await crawlRes.json();
+            if (!result.error) {
+              const row: CrawlRow = { protocol: result.protocol, discord: result.discord, status: result.status };
+              addLog(`  ${result.status === 'FOUND' ? '✓' : '✗'} ${result.protocol}: ${result.discord}`);
+              addResult(row);
+              crawledNamesSet.add(proto.name.toLowerCase());
+            }
+          } catch (e) {
+            addLog(`  ✗ ${(e as Error).message}`);
+          }
+        }
+      } catch (e) {
+        addLog(`✗ Batch failed: ${(e as Error).message}`);
+      }
+      currentFrom = currentTo;
+      await new Promise(r => setTimeout(r, 500));
+    }
+    setAutoRunning(false);
+    setCrawling(null);
+    setLoading(false);
+    addLog(`[Auto] Done! Completed ${autoRounds} rounds of 25`);
+  };
+
   const displayResults = showFoundOnly ? results.filter(r => r.status === 'FOUND') : results;
   const stats = {
     total: results.length,
