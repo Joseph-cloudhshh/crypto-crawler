@@ -644,7 +644,43 @@ export default function Home() {
           {coverageData.crawled.length === 0 ? (
             <p className="text-gray-500 font-mono text-sm">No data yet. Click Coverage to load!</p>
           ) : (
-            <CoverageView crawled={coverageData.crawled} />
+            <>
+              {(() => {
+                const crawledSet = new Set(coverageData.crawled);
+                const max = Math.max(...coverageData.crawled);
+                let gapStart = null;
+                for (let i = 1; i <= max + 1; i++) {
+                  if (!crawledSet.has(i)) { gapStart = i; break; }
+                }
+                let lastConsecutive = 0;
+                for (let i = 1; i <= max; i++) {
+                  if (crawledSet.has(i)) lastConsecutive = i;
+                  else break;
+                }
+                return (
+                  <div className="mb-4 p-3 rounded-lg border border-indigo-800 bg-indigo-900/20">
+                    <p className="text-xs text-indigo-400 font-mono uppercase tracking-widest mb-2">Resume Crawling</p>
+                    <div className="flex flex-wrap gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 font-mono">Crawled up to</p>
+                        <p className="text-lg font-bold text-white font-mono">{lastConsecutive}</p>
+                      </div>
+                      {gapStart && (
+                        <div>
+                          <p className="text-xs text-gray-500 font-mono">Next gap starts at</p>
+                          <p className="text-lg font-bold text-yellow-400 font-mono">{gapStart}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs text-gray-500 font-mono">Continue from</p>
+                        <p className="text-lg font-bold text-green-400 font-mono">{max + 1}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              <CoverageView crawled={coverageData.crawled} />
+            </>
           )}
         </div>
       )}
