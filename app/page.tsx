@@ -174,7 +174,10 @@ export default function Home() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: proto.name, url: proto.url, twitter: proto.twitter, rank: offset + i + 1 }),
             });
-            const result = await crawlRes.json();
+            const rawText = await crawlRes.text();
+            let result: any;
+            try { result = JSON.parse(rawText); }
+            catch { addLog(`  ✗ Timeout/error on ${proto.name}`); continue; }
             if (!result.error) {
               const row: CrawlRow = { protocol: result.protocol, discord: result.discord, status: result.status };
               addLog(`  ${result.status === 'FOUND' ? '✓' : '✗'} ${result.protocol}: ${result.discord}`);
@@ -309,7 +312,10 @@ export default function Home() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: proto.name, url: proto.url, twitter: proto.twitter, rank: currentFrom + i + 1 }),
             });
-            const result = await crawlRes.json();
+            const rawText = await crawlRes.text();
+            let result: any;
+            try { result = JSON.parse(rawText); }
+            catch { addLog(`  ✗ Timeout/error on ${proto.name}`); continue; }
             if (!result.error) {
               const row: CrawlRow = { protocol: result.protocol, discord: result.discord, status: result.status };
               addLog(`  ${result.status === 'FOUND' ? '✓' : '✗'} ${result.protocol}: ${result.discord}`);
