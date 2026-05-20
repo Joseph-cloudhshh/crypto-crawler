@@ -53,6 +53,7 @@ export default function Home() {
   const [totalProtocols, setTotalProtocols] = useState(0);
   const [showFoundOnly, setShowFoundOnly] = useState(false);
   const [autoRounds, setAutoRounds] = useState(5);
+  const [autoBatchSize, setAutoBatchSize] = useState(10);
   const [autoRunning, setAutoRunning] = useState(false);
   const [coverageData, setCoverageData] = useState<{crawled: number[], total: number}>({crawled: [], total: 0});
 
@@ -291,12 +292,12 @@ export default function Home() {
     const crawledData = await crawledRes.json();
     const crawledNamesSet = new Set((crawledData.records || []).map((r: any) => r.name.toLowerCase()));
     for (let round = 0; round < autoRounds; round++) {
-      const currentTo = currentFrom + 25;
+      const currentTo = currentFrom + autoBatchSize;
       setRangeFrom(currentFrom);
       setRangeTo(currentTo);
       addLog(`[Auto] Round ${round + 1}/${autoRounds}: ${currentFrom}-${currentTo}`);
       try {
-        const res = await fetch(`/api/protocols?limit=25&offset=${currentFrom}`);
+        const res = await fetch(`/api/protocols?limit=${autoBatchSize}&offset=${currentFrom}`);
         const data = await res.json();
         const protocols: DefiLlamaProto[] = data.protocols || [];
         for (let i = 0; i < protocols.length; i++) {
@@ -462,15 +463,24 @@ export default function Home() {
 
             {/* Auto Crawl */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Auto Crawl (25 each round)</label>
+              <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Auto Crawl</label>
               <div className="flex gap-2 items-center">
+                <select
+                  value={autoBatchSize}
+                  onChange={(e) => setAutoBatchSize(Number(e.target.value))}
+                  className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono"
+                >
+                  {[5, 10, 15, 20, 25].map((n) => (
+                    <option key={n} value={n}>{n} per round</option>
+                  ))}
+                </select>
                 <select
                   value={autoRounds}
                   onChange={(e) => setAutoRounds(Number(e.target.value))}
                   className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono"
                 >
                   {[2, 5, 10, 20, 50].map((n) => (
-                    <option key={n} value={n}>{n} rounds ({n * 25} protocols)</option>
+                    <option key={n} value={n}>{n} rounds</option>
                   ))}
                 </select>
                 <button
@@ -481,7 +491,7 @@ export default function Home() {
                   {autoRunning ? 'Auto Crawling...' : 'Start Auto Crawl'}
                 </button>
               </div>
-              <p className="text-xs text-gray-600 mt-1">Starts from current From value, advances 25 each round</p>
+              <p className="text-xs text-gray-600 mt-1">Total: {autoBatchSize * autoRounds} protocols. Resumes from last crawled rank.</p>
             </div>
           </div>
 
