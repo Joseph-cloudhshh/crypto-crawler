@@ -1,6 +1,7 @@
 import type { DefiLlamaProtocol } from '../app/lib/defillama';
 import { normalizeUrl, normalizeTwitter } from '../app/lib/defillama';
 import { crawlWebsite, crawlTwitter, resetVisited } from './utils/crawler';
+import { getBrowser, newPage } from './utils/browser';
 import { upsertProtocol } from '../app/lib/supabase';
 import { extractDiscordLinks, bestDiscordLink } from './extractors/discord';
 
@@ -41,6 +42,19 @@ export async function scrapeProtocol(proto: DefiLlamaProtocol, rank?: number): P
   const slug = proto.slug || proto.id;
   let discord = '404';
 
+  // Use Puppeteer if Browserless token available, otherwise plain fetch
+  const usePuppeteer = !!process.env.BROWSERLESS_TOKEN;
+  let browser = null;
+  let page = null;
+  if (usePuppeteer) {
+    try {
+      browser = await getBrowser();
+      page = await newPage(browser);
+    } catch (err) {
+      console.warn('[Scraper] Puppeteer unavailable, falling back to fetch');
+    }
+  }
+
   // 1. Check DeFiLlama API first (fastest, most reliable)
   console.log(`[Scraper] Checking DeFiLlama API for ${proto.name}`);
   const llamaDiscord = await fetchDefiLlamaDiscord(slug);
@@ -63,22 +77,24 @@ export async function scrapeProtocol(proto: DefiLlamaProtocol, rank?: number): P
     })();
 
     resetVisited();
-    const found = await crawlWebsite(null, website);
+    const found = await crawlWebsite(page, website);
     if (found) discord = found;
 
     if (discord === '404' && rootUrl && rootUrl !== website) {
       console.log(`[Scraper] Trying root domain: ${rootUrl}`);
       resetVisited();
-      const found2 = await crawlWebsite(null, rootUrl);
+      const found2 = await crawlWebsite(page, rootUrl);
       if (found2) discord = found2;
     }
   }
 
   // 3. Try Twitter as last resort
   if (discord === '404' && twitter !== '404') {
-    const found = await crawlTwitter(null, twitter);
+    const found = await crawlTwitter(page, twitter);
     if (found) discord = found;
   }
+
+  if (page) await page.close().catch(() => {});
 
   const result: CrawlResult = {
     protocol: proto.name,
