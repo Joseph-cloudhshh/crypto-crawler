@@ -276,7 +276,9 @@ export default function Home() {
       const covData = await covRes.json();
       if (covData.crawled && covData.crawled.length > 0) {
         const maxRank = Math.max(...covData.crawled);
-        currentFrom = maxRank + 1;
+        const autoStart = maxRank + 1;
+        // Use whichever is higher - coverage max or user-set rangeFrom
+        currentFrom = Math.max(autoStart, rangeFrom);
         addLog(`[Auto] Resuming from rank ${currentFrom}`);
       }
     } catch (e) {
