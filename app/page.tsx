@@ -52,6 +52,8 @@ export default function Home() {
   const [savedSearch, setSavedSearch] = useState('');
   const [totalProtocols, setTotalProtocols] = useState(0);
   const [showFoundOnly, setShowFoundOnly] = useState(false);
+  const [autoRounds, setAutoRounds] = useState(5);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [coverageData, setCoverageData] = useState<{crawled: number[], total: number}>({crawled: [], total: 0});
 
   const addLog = (msg: string) => {
@@ -385,6 +387,30 @@ export default function Home() {
                   {rangeTo - rangeFrom} protocols — est. {Math.round(((rangeTo - rangeFrom) * 5) / 60)}–{Math.round(((rangeTo - rangeFrom) * 10) / 60)} min (3x parallel)
                 </p>
               )}
+            </div>
+
+            {/* Auto Crawl */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Auto Crawl (25 each round)</label>
+              <div className="flex gap-2 items-center">
+                <select
+                  value={autoRounds}
+                  onChange={(e) => setAutoRounds(Number(e.target.value))}
+                  className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono"
+                >
+                  {[2, 5, 10, 20, 50].map((n) => (
+                    <option key={n} value={n}>{n} rounds ({n * 25} protocols)</option>
+                  ))}
+                </select>
+                <button
+                  onClick={autoCrawl}
+                  disabled={loading || autoRunning}
+                  className="flex-1 px-4 py-2 bg-green-800 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-colors border border-green-700"
+                >
+                  {autoRunning ? 'Auto Crawling...' : 'Start Auto Crawl'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Starts from current From value, advances 25 each round</p>
             </div>
           </div>
 
