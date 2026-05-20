@@ -1,35 +1,27 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import type { Browser, Page } from 'puppeteer';
-
-puppeteer.use(StealthPlugin());
 
 let browser: Browser | null = null;
 
 export async function getBrowser(): Promise<Browser> {
   if (browser && browser.connected) return browser;
-
   const token = process.env.BROWSERLESS_TOKEN;
-
   if (token) {
-    // Use Browserless.io in production
+    const puppeteer = (await import('puppeteer-extra')).default;
+    const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;
+    puppeteer.use(StealthPlugin());
     browser = await puppeteer.connect({
       browserWSEndpoint: `wss://chrome.browserless.io?token=${token}`,
     });
   } else {
-    // Fall back to local Chrome in Codespaces
+    const puppeteer = (await import('puppeteer-extra')).default;
+    const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;
+    puppeteer.use(StealthPlugin());
     browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     });
   }
-
   browser.on('disconnected', () => { browser = null; });
   return browser;
 }
@@ -53,10 +45,9 @@ export async function newPage(b: Browser): Promise<Page> {
 export async function fetchPageHtml(
   page: Page | null,
   url: string,
-  waitMs = 3000,
-  timeoutMs = 15000
+  _waitMs = 3000,
+  _timeoutMs = 15000
 ): Promise<string | null> {
-  // If no page (plain fetch mode), use fetch
   if (!page) {
     try {
       const res = await fetch(url, {
@@ -73,10 +64,9 @@ export async function fetchPageHtml(
       return null;
     }
   }
-  // Use Puppeteer page
   try {
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs });
-    await new Promise(r => setTimeout(r, waitMs));
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+    await new Promise(r => setTimeout(r, 3000));
     return await page.content();
   } catch (err) {
     console.warn(`[Browser] Puppeteer failed ${url}:`, (err as Error).message);
