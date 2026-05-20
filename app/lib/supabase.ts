@@ -44,7 +44,7 @@ export async function upsertProtocol(record: Omit<ProtocolRecord, 'id' | 'create
       })
       .eq('name', record.name)
       .select()
-      .single();
+      .maybeSingle();
     if (error) console.error('[Supabase] update error:', error.message);
     return data;
   }
@@ -60,7 +60,7 @@ export async function upsertProtocol(record: Omit<ProtocolRecord, 'id' | 'create
       created_at: now,
     })
     .select()
-    .single();
+    .maybeSingle();
   if (error) console.error('[Supabase] insert error:', error.message);
   return data;
 }
