@@ -269,7 +269,19 @@ export default function Home() {
 
   const autoCrawl = async () => {
     setAutoRunning(true);
+    // Auto-detect start from highest crawled rank + 1
     let currentFrom = rangeFrom;
+    try {
+      const covRes = await fetch('/api/coverage');
+      const covData = await covRes.json();
+      if (covData.crawled && covData.crawled.length > 0) {
+        const maxRank = Math.max(...covData.crawled);
+        currentFrom = maxRank + 1;
+        addLog(`[Auto] Resuming from rank ${currentFrom}`);
+      }
+    } catch (e) {
+      addLog(`[Auto] Could not detect last rank, using From value: ${currentFrom}`);
+    }
     const crawledRes = await fetch('/api/results');
     const crawledData = await crawledRes.json();
     const crawledNamesSet = new Set((crawledData.records || []).map((r: any) => r.name.toLowerCase()));
