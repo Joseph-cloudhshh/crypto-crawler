@@ -298,7 +298,10 @@ export default function Home() {
       addLog(`[Auto] Round ${round + 1}/${autoRounds}: ${currentFrom}-${currentTo}`);
       try {
         const res = await fetch(`/api/protocols?limit=${autoBatchSize}&offset=${currentFrom}`);
-        const data = await res.json();
+        const resText = await res.text();
+        let data: any;
+        try { data = JSON.parse(resText); }
+        catch { addLog(`✗ Protocols fetch failed for offset ${currentFrom}`); currentFrom += autoBatchSize; continue; }
         const protocols: DefiLlamaProto[] = data.protocols || [];
         for (let i = 0; i < protocols.length; i++) {
           const proto = protocols[i];
