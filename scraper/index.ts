@@ -43,7 +43,7 @@ export async function scrapeProtocol(proto: DefiLlamaProtocol, rank?: number): P
   let discord = '404';
 
   // Use Puppeteer if Browserless token available, otherwise plain fetch
-  const usePuppeteer = !!process.env.BROWSERLESS_TOKEN;
+  const usePuppeteer = false;
   let browser = null;
   let page = null;
   if (usePuppeteer) {
